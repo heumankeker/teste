@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RandColorCS : MonoBehaviour
+public class RandomColor : MonoBehaviour
 {
 
     struct Cube
@@ -12,12 +12,11 @@ public class RandColorCS : MonoBehaviour
     }
 
     public ComputeShader computeShader;
-    public int iteraction = 50;
-    public int count = 100;
-    GameObject[] gameObjects;
-    Cube[] data;
+    public int counts = 100;
     public GameObject modelPref;
-
+    public int interactions = 100;
+    Cube[] data;
+    GameObject[] gameObjects;
 
     // Start is called before the first frame update
     void Start()
@@ -34,21 +33,20 @@ public class RandColorCS : MonoBehaviour
     void OnGUI()
     {
         if (data == null)
-        {
-
-            if (GUI.Button(new Rect(0, 0, 50, 50), "Create"))
+        { 
+            if (GUI.Button(new Rect(0, 0, 100, 50), "Create"))
             {
-                createCube();
+                createCubes();
             }
         }
-        
+
         if (data != null)
         {
             if (GUI.Button(new Rect(110, 0, 100, 50), "Random CPU"))
             {
-                for (int k = 0; k < iteraction; k++)
+                for (int k = 0; k < interactions; k++)
                 {
-                    for (int i = 0; i < gameObjects.Length; i++)
+                    for (int i = 0; i < counts * counts; i++)
                     {
                         gameObjects[i].GetComponent<MeshRenderer>().material.SetColor("_Color", Random.ColorHSV());
                     }
@@ -60,55 +58,51 @@ public class RandColorCS : MonoBehaviour
         {
             if (GUI.Button(new Rect(220, 0, 100, 50), "Random GPU"))
             {
-                int totalSize = sizeof(float) * 4 + sizeof(float) * 3;
+                int totalSize = sizeof(float) * 3 + sizeof(float) * 4;
 
                 ComputeBuffer computeBuffer = new ComputeBuffer(data.Length, totalSize);
-
                 computeBuffer.SetData(data);
 
                 computeShader.SetBuffer(0, "cubes", computeBuffer);
-
-                computeShader.SetInt("iteraction", iteraction);
-
+                computeShader.SetInt("interactions", interactions);
                 computeShader.Dispatch(0, data.Length / 10, 1, 1);
 
                 computeBuffer.GetData(data);
+
                 for (int i = 0; i < gameObjects.Length; i++)
                 {
                     gameObjects[i].GetComponent<MeshRenderer>().material.SetColor("_Color", data[i].color);
                 }
-            
+
                 computeBuffer.Dispose();
-                
             }
         }
     }
 
-    private void createCube()
+    void createCubes()
     {
-        data = new Cube[count * count];
-        gameObjects = new GameObject[count * count];
+        data = new Cube[counts * counts];
+        gameObjects = new GameObject[counts * counts];
 
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < counts; i++)
         {
-            float offsetX = (-count / 2 + i);
+            float offsetX = (-counts / 2 + i);
 
-            for(int j = 0; j < count; j++)
+            for (int k = 0; k < counts; k++)
             {
-                float offsetY = (-count / 2 + j);
+                float offsetY = (-counts / 2 + k);
 
-                Color _color = Random.ColorHSV();
+                Color _colorInic = Random.ColorHSV();
 
-                GameObject go = GameObject.Instantiate(modelPref, new Vector3(offsetX * 0.7f, 0, offsetY * 0.7f), Quaternion.identity);
+                GameObject go = GameObject.Instantiate(modelPref, new Vector3(offsetX * 0.6f, 0, offsetY * 0.6f), Quaternion.identity);
+                go.GetComponent<MeshRenderer>().material.SetColor("_Color", _colorInic);
+                gameObjects[i * counts + k] = go;
 
-                go.GetComponent<MeshRenderer>().material.SetColor("_Color", _color);
-
-                gameObjects[i * count + j] = go;
-
-                data[i * count + j] = new Cube();
-                data[i * count + j].position = go.transform.position;
-                data[i * count + j].color = _color;
+                data[i * counts + k] = new Cube();
+                data[i * counts + k].position = go.transform.position;
+                data[i * counts + k].color = _colorInic;
             }
         }
     }
+
 }
